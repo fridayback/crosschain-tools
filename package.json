@@ -1,0 +1,23 @@
+{
+  "name": "crosschain-tools",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fridayback/crosschain-tools.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fridayback/crosschain-tools/issues"
+  },
+  "homepage": "https://github.com/fridayback/crosschain-tools#readme",
+  "description": "",
+  "dependencies": {
+    "crosschain-sdk-1-1": "https://github.com/fridayback/contracts-sdk.git#v1.1",
+    "crosschain-sdk-1-2": "https://github.com/fridayback/contracts-sdk.git#v1.2.1"
+  }
+}
