@@ -732,13 +732,15 @@ async function upgradeGroupNFTHolder() {
     const utxosForFee = await getUtxoForFee();
     const collateralUtxo = await tryGetCollateralUtxo();
     
-    const newGroupNFTHolder = contractsMgr.GroupInfoNFTHolderScript.address().to_bech32();
-    let newDatum = await getGroupInfo();
-    newDatum[contractsMgr.GroupNFT.Version] = contractsMgr.GroupInfoNFTHolderScript.script().hash().to_hex();
-    newDatum[contractsMgr.GroupNFT.NFTRefHolderVH] = nftContracts.NFTRefHolderScript.script().hash().to_hex();
-    newDatum[contractsMgr.GroupNFT.NFTTreasuryCheckVH] = nftContracts.NFTTreasuryCheckScript.script().hash().to_hex();
-    newDatum[contractsMgr.GroupNFT.NFTMintCheckVH] = nftContracts.NFTMintCheckScript.script().hash().to_hex();
-    newDatum = contractsMgr.GroupNFT.genGroupInfoDatum(newDatum).to_hex();
+    const upgradeConfig = require('./upgrade.json');
+    const newGroupNFTHolder = upgradeConfig.newHolder;
+    // let newDatum = await getGroupInfo();
+    // newDatum[contractsMgr.GroupNFT.Version] = contractsMgr.GroupInfoNFTHolderScript.script().hash().to_hex();
+    // newDatum[contractsMgr.GroupNFT.NFTRefHolderVH] = nftContracts.NFTRefHolderScript.script().hash().to_hex();
+    // newDatum[contractsMgr.GroupNFT.NFTTreasuryCheckVH] = nftContracts.NFTTreasuryCheckScript.script().hash().to_hex();
+    // newDatum[contractsMgr.GroupNFT.NFTMintCheckVH] = nftContracts.NFTMintCheckScript.script().hash().to_hex();
+    // newDatum = contractsMgr.GroupNFT.genGroupInfoDatum(newDatum).to_hex();
+    let newDatum = upgradeConfig.newDatum;
     
     const signedTx = await sdkNew.upgradeGroupNFTHolder(
       newGroupNFTHolder, 
