@@ -2,7 +2,7 @@
  * @Author: liulin blue-sky-dl5@163.com
  * @Date: 2025-08-14 16:13:35
  * @LastEditors: liulin blue-sky-dl5@163.com
- * @LastEditTime: 2025-08-28 11:58:41
+ * @LastEditTime: 2025-11-06 17:09:25
  * @FilePath: /crosschain-tools/tools.js
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
