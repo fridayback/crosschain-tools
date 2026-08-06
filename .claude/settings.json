@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": ["Read", "Bash"],
+    "deny": []
+  },
+  "hooks": {
+    "UserPromptSubmit": [],
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [{"type": "command", "command": "python3 .claude/guards/check_path.py"}]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [{"type": "command", "command": "python3 .claude/guards/check_path.py"}]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write(*.py)",
+        "hooks": [{"type": "command", "command": "ruff check --fix --quiet $CLAUDE_FILE_PATHS 2>/dev/null || true"}]
+      }
+    ],
+    "Stop": [],
+    "SessionStart": []
+  }
+}
