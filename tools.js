@@ -9,30 +9,31 @@
 // const sdk11 = require("crosschain-sdk-1-1");
 const CardanoWasm = require('@emurgo/cardano-serialization-lib-nodejs');
 const ogmiosUtils = require("crosschain-sdk-1-2/ogmios-utils2");
-const utils = require('crosschain-sdk-1-1/utils');
+const utils = require('crosschain-sdk-1-2/utils');
 // const contractsMgrOld = sdk11.contracts_mgr;
 // const contractsOld = sdk11.contracts
 
-const sdk12 = require("crosschain-sdk-1-2");
-const contractsMgr = sdk12.contracts_mgr;
-const contracts = sdk12.contracts
+const contracts_sdk = require("crosschain-sdk-1-2");
+const contractsMgr = contracts_sdk.contracts_mgr;
+const contracts = contracts_sdk.contracts
 const nftContracts = require("crosschain-sdk-1-2/nft-contract");
 
 const isMainnet = true;
 // const sdkOld = new sdk11.ContractSdk(isMainnet);
-const sdkNew = new sdk12.ContractSdk(isMainnet);
+const sdkNew = new contracts_sdk.ContractSdk(isMainnet);
 
 const collateralAmount = 5000000;
 const parameterizedAmount = 2222221;
 const parameterizedAmount2 = 2222222
 
-// const kkkk = '61b4743240b26bc7bf495aada16e3e1abb8d3147e2ad97e35cf01b36be1afe0b';//CardanoWasm.PrivateKey.generate_ed25519().to_hex();
-// const newKey = CardanoWasm.PrivateKey.from_hex(kkkk);
-// const newPkh = newKey.to_public().hash();
-// const adminaddr = CardanoWasm.BaseAddress.new(
-//     CardanoWasm.NetworkIdKind.Mainnet
-//     , CardanoWasm.Credential.from_keyhash(newPkh)
-//     , CardanoWasm.Credential.from_keyhash(newPkh))
+//deploy addresss
+const kkkk = '61b4743240b26bc7bf495aada16e3e1abb8d3147e2ad97e35cf01b36be1afe0b';//CardanoWasm.PrivateKey.generate_ed25519().to_hex();
+const newKey = CardanoWasm.PrivateKey.from_hex(kkkk);
+const newPkh = newKey.to_public().hash();
+const adminaddr = CardanoWasm.BaseAddress.new(
+    CardanoWasm.NetworkIdKind.Mainnet
+    , CardanoWasm.Credential.from_keyhash(newPkh)
+    , CardanoWasm.Credential.from_keyhash(newPkh)).to_address().to_bech32('addr');
 
 
 // const payPrvKeyNext = '9b160ba482e38697c5631df832cbc2f5a9c41d9a588b2fa11dc7c370cf02058a';
@@ -64,10 +65,13 @@ const parameterizedAmount2 = 2222222
 // ];
 ///////////////////////////////////=====----- mainnet config -----=====//////////////////////////////////////////////////
 const payPrvKeyNext = '9b160ba482e38697c5631df832cbc2f5a9c41d9a588b2fa11dc7c370cf02058a';
-const payPrvKey = 'cbc623254ca1eb30d8cb21b2ef04381372ff24529a74e4b5117d1e3bbb0f0188';
+const payPrvKey = kkkk;//'cbc623254ca1eb30d8cb21b2ef04381372ff24529a74e4b5117d1e3bbb0f0188';
 const scriptRefOwnerAddr = 'addr1qys3nr0s5wqz3gw2n9satl279ntzha2z92v4ewrknr234hzx8ugllqwa07adyqwz23j797tha446p0exqa8jjypyqzasq73gym';
-const admin = 'addr1q8jqrqz0t2vzy5yvl88wtyjgurvhwauw0sqpe698mq04p0ham3clyk6mg6gctwsfuc8hsgqdt0s9laxl585uwu3xvx2s2pglww'
+// const admin = 'addr1q8jqrqz0t2vzy5yvl88wtyjgurvhwauw0sqpe698mq04p0ham3clyk6mg6gctwsfuc8hsgqdt0s9laxl585uwu3xvx2s2pglww' //admin address
+const admin = 'addr1q9zwpxsfyz9lp3h6ammx4w05tmznf8fc9jnhphve6yum6xjyuzdqjgyt7rr04mhkd2ulghk9xjwnst98wrwen5feh5dqlz0n7t' //deploy address
 
+console.log('PK:', CardanoWasm.PrivateKey.from_normal_bytes(Buffer.from(payPrvKey, 'hex')).to_public().hash().to_hex());
+console.log('Pk next:', CardanoWasm.PrivateKey.from_normal_bytes(Buffer.from(payPrvKeyNext, 'hex')).to_public().hash().to_hex());
 
 const signatories = [
     'addr1q8jqrqz0t2vzy5yvl88wtyjgurvhwauw0sqpe698mq04p0ham3clyk6mg6gctwsfuc8hsgqdt0s9laxl585uwu3xvx2s2pglww',
@@ -301,13 +305,13 @@ async function tryScriptRefUtxo(script) {
 
     let refUtxo = await ogmiosUtils.getUtxo(scriptRefOwnerAddr);
     // const arr = refUtxo.filter(o => script.to_hex().indexOf(o.script['plutus:v2']) >= 0);
-    const ref = refUtxo.find(o => script.to_hex().indexOf(o.script['plutus:v2']) >= 0);
+    const ref = refUtxo.find(o => script.to_hex().indexOf(o.script['plutus:v2']) >= 0 || script.to_hex().indexOf(o.script['plutus:v3']) >= 0);
     if (ref) return ref;
 
     let utxtos = await getUtxoForFee();
 
     let signedTx = await utils.createScriptRef(protocolParamsGlobal, utxtos, admin, scriptRefOwnerAddr, script, signFn);
-    // console.log(signedTx.to_json());
+    console.log(signedTx.to_json());
     const ret = await ogmiosUtils.submitTx(signedTx);
     console.log('create script ref:', ret)
     return await ogmiosUtils.waitTxConfirmed(scriptRefOwnerAddr, ret);
@@ -326,9 +330,11 @@ async function main() {
     const url = isMainnet ? mainnetUrl : testnetUrl;
 
     // await sdkOld.init(url);
+     await sdkNew.init(url);
     // await show();
     console.log('-----------------------');
-    await sdkNew.init(url);
+    // return;
+    // await sdkNew.init(url);
     
     // await show();
     protocolParamsGlobal = await ogmiosUtils.getParamProtocol();
@@ -339,8 +345,8 @@ async function main() {
     let signFn;
     
 
-    // const treasuryCheckRef = await tryScriptRefUtxo(contracts.TreasuryCheckScript.script());
-    // const mintCheckRef = await tryScriptRefUtxo(contracts.MintCheckScript.script());
+    const treasuryCheckRef = await tryScriptRefUtxo(contracts.TreasuryCheckScript.script());
+    const mintCheckRef = await tryScriptRefUtxo(contracts.MintCheckScript.script());
     const stakeCred = contractsMgr.StoremanStackScript.script().hash().to_hex();
     const newTreasyCheckVH = contracts.TreasuryCheckScript.address(stakeCred).to_bech32(sdkNew.ADDR_PREFIX);
     const newMintCheckVH = contracts.MintCheckScript.address(stakeCred).to_bech32(sdkNew.ADDR_PREFIX);
