@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getPkg } from '../sdk-bridge'
+import { pkhOfAddress } from '../witness'
 import { setAdminMultisig } from '../api/tx'
 import { useBuildFlow } from '../build-flow'
 import TxOptions from './TxOptions'
@@ -23,10 +24,16 @@ export default function MultisigPanel({ onNavigate }) {
     setDatumError('')
     try {
       const mgr = getPkg(kind).contracts_mgr
-      const datum = mgr.AdminNFTHolderScript.genDatum(
-        signatoryList(),
-        parseInt(minNum, 10)
-      )
+      const signatories = signatoryList()
+      if (!signatories.length) throw new Error('请至少填写一个 signatory 地址')
+      const min = parseInt(minNum, 10)
+      if (!Number.isInteger(min) || min < 1) {
+        throw new Error('minNumSignatures 必须是 ≥1 的整数')
+      }
+
+      // genDatum 内部是 Buffer.from(x, 'hex')：必须传公钥哈希 hex。
+      // 传 bech32 不会报错，但会被静默截断成 1 字节，生成一个没人能满足的 datum。
+      const datum = mgr.AdminNFTHolderScript.genDatum(signatories.map(pkhOfAddress), min)
       setDatumHex(datum.to_hex())
     } catch (e) {
       setDatumError(String(e.message || e))

@@ -103,6 +103,17 @@ t('pkhOfAddress 与私钥公钥哈希一致', () => {
   assert.equal(pkhOfAddress(addrA), skA.to_public().hash().to_hex())
 })
 
+// 合约 datum 里存的是 28 字节公钥哈希的 hex（genDatum 内部 Buffer.from(x,'hex')）。
+// 传 bech32 进去不会报错，会被静默截断成 1 字节 —— 生成一个谁也无法满足的 datum。
+// 这条锁住「必须传 pkhOfAddress 的输出、不能传 bech32」这个契约。
+t('pkhOfAddress 产出 28 字节 hex，而 bech32 当 hex 用会被静默截断', () => {
+  const pkh = pkhOfAddress(addrA)
+  assert.match(pkh, /^[0-9a-f]{56}$/, '必须是 28 字节的 hex')
+  assert.equal(Buffer.from(pkh, 'hex').length, 28)
+  // 反例：这正是 MultisigPanel 生成 datum 时踩过的坑
+  assert.equal(Buffer.from(addrA, 'hex').length, 1, 'bech32 会被截断成 1 字节')
+})
+
 t('pkhOfAddress 对脚本凭据地址抛错', () => {
   const scriptAddr = C.EnterpriseAddress.new(
     0,
