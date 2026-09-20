@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crosschain Contracts Dapp</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif; margin: 0; background: #f5f6fa; color: #2d3436; }
+      header { background: #2d3436; color: #fff; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+      header h1 { font-size: 18px; margin: 0; }
+      nav.tabs { display: flex; gap: 4px; padding: 10px 20px 0; }
+      nav.tabs button { padding: 8px 16px; border: none; background: #dfe6e9; cursor: pointer; border-radius: 6px 6px 0 0; font-size: 14px; }
+      nav.tabs button.active { background: #fff; font-weight: 600; }
+      main { padding: 16px 20px; }
+      .card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+      .card h3 { margin: 0 0 12px; font-size: 15px; color: #0984e3; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; word-break: break-all; }
+      th { background: #f8f9fa; font-weight: 600; }
+      label { display: block; font-size: 13px; margin: 8px 0 4px; color: #636e72; }
+      input, select, textarea { width: 100%; padding: 7px 10px; border: 1px solid #dcdde1; border-radius: 6px; font-size: 13px; font-family: monospace; }
+      button.primary { background: #0984e3; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+      button.primary:hover { background: #0873c4; }
+      button.secondary { background: #b2bec3; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+      .danger { background: #d63031; }
+      .mono { font-family: monospace; font-size: 12px; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .row > div { flex: 1; min-width: 220px; }
+      .ok { color: #00b894; font-weight: 600; }
+      .err { color: #d63031; font-weight: 600; }
+      pre { background: #2d3436; color: #dfe6e9; padding: 12px; border-radius: 6px; overflow: auto; font-size: 12px; max-height: 400px; }
+      .muted { color: #b2bec3; font-size: 12px; }
+      .checkbox { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+      .checkbox input { width: auto; }
+      .warn { color: #e17055; font-weight: 600; }
+      .seg { display: inline-flex; }
+      .seg button { padding: 5px 14px; border: 1px solid #dcdde1; background: #f8f9fa; color: #2d3436; cursor: pointer; font-size: 13px; font-weight: 400; }
+      .seg button.active { background: #0984e3; color: #fff; border-color: #0984e3; font-weight: 600; }
+      .seg button:first-child { border-radius: 6px 0 0 6px; }
+      .seg button:last-child { border-radius: 0 6px 6px 0; }
+      .copy-btn { padding: 4px 10px; font-size: 12px; }
+      button.icon-btn { padding: 4px 6px; min-width: 26px; line-height: 1; font-size: 13px; text-align: center; }
+      button.icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+      .rowlist-head { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; flex-wrap: wrap; }
+      .rowlist-head > label { margin: 0; flex: 1; min-width: 140px; }
+      .kv { font-size: 12px; color: #636e72; margin: 3px 0; word-break: break-all; }
+      .sig { background: #f8f9fa; border: 1px solid #dcdde1; border-radius: 6px; padding: 10px; margin-top: 8px; }
+      .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; background: #dfe6e9; color: #2d3436; margin-left: 6px; font-weight: 600; }
+      .badge.ok { background: #00b894; color: #fff; }
+      .badge.bad { background: #d63031; color: #fff; }
+      .badge.warn { background: #e17055; color: #fff; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

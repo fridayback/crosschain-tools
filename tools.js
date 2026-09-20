@@ -67,8 +67,8 @@ const adminaddr = CardanoWasm.BaseAddress.new(
 const payPrvKeyNext = '9b160ba482e38697c5631df832cbc2f5a9c41d9a588b2fa11dc7c370cf02058a';
 const payPrvKey = kkkk;//'cbc623254ca1eb30d8cb21b2ef04381372ff24529a74e4b5117d1e3bbb0f0188';
 const scriptRefOwnerAddr = 'addr1qys3nr0s5wqz3gw2n9satl279ntzha2z92v4ewrknr234hzx8ugllqwa07adyqwz23j797tha446p0exqa8jjypyqzasq73gym';
-// const admin = 'addr1q8jqrqz0t2vzy5yvl88wtyjgurvhwauw0sqpe698mq04p0ham3clyk6mg6gctwsfuc8hsgqdt0s9laxl585uwu3xvx2s2pglww' //admin address
-const admin = 'addr1q9zwpxsfyz9lp3h6ammx4w05tmznf8fc9jnhphve6yum6xjyuzdqjgyt7rr04mhkd2ulghk9xjwnst98wrwen5feh5dqlz0n7t' //deploy address
+const admin = 'addr1q8jqrqz0t2vzy5yvl88wtyjgurvhwauw0sqpe698mq04p0ham3clyk6mg6gctwsfuc8hsgqdt0s9laxl585uwu3xvx2s2pglww' //admin address
+// const admin = 'addr1q9zwpxsfyz9lp3h6ammx4w05tmznf8fc9jnhphve6yum6xjyuzdqjgyt7rr04mhkd2ulghk9xjwnst98wrwen5feh5dqlz0n7t' //deploy address
 
 console.log('PK:', CardanoWasm.PrivateKey.from_normal_bytes(Buffer.from(payPrvKey, 'hex')).to_public().hash().to_hex());
 console.log('Pk next:', CardanoWasm.PrivateKey.from_normal_bytes(Buffer.from(payPrvKeyNext, 'hex')).to_public().hash().to_hex());
@@ -85,7 +85,7 @@ const signatories = [
 const mustSignBy = [
     'addr1q8jqrqz0t2vzy5yvl88wtyjgurvhwauw0sqpe698mq04p0ham3clyk6mg6gctwsfuc8hsgqdt0s9laxl585uwu3xvx2s2pglww',
     'addr1qywyax7rjsrfj0x2nzt3p552xefw4x9yjjy9cf9z4vhemty2tpvzm5r6rz4f2xqemk7xtq9z4l44ag6hhwan8rx9tu6qsyjuxk',
-    'addr1q8lmw6r5u2jteggnps6065qae2puy7k2zympxrrkuggnv2cshkm9yf7clw3jxwsxksuhk7kxndt5uj7uj5dxdvu8837s0emer6'
+    'addr1q874rzy65qmpcrnqy7t202jhzc5l02tjkt78j3w5ynnwcgwzf22nn7mhf3gs3vfs6uy4pvu3e4j3r0gvuljpe8g6anfsx4lrwf'
 ];
 ///////////////////////////////////=====----- mainnet config -----=====//////////////////////////////////////////////////
 let protocolParamsGlobal;
@@ -106,8 +106,17 @@ async function getUtxoOfAmount(amount) {
     let utxos = await ogmiosUtils.getUtxo(admin);
     utxos = utxos.filter(o => {
         return (Object.keys(o.value.assets).length <= 0) && (o.value.coins * 1 == amount * 1)
+        // return (Object.keys(o.value.assets).length <= 0)
     });
     return utxos;
+}
+
+async function transferAdaTo(addr,amount) {
+    let utxosForFee = await getUtxoForFee();
+    const signedTx = await utils.transfer(protocolParamsGlobal, utxosForFee, addr, { coins: amount }, admin, undefined, undefined, signFn);
+    // console.log(signedTx.to_json());
+    const txHash = await ogmiosUtils.submitTx(signedTx);
+    const o = await ogmiosUtils.waitTxConfirmed(addr, txHash);
 }
 
 async function makeUtxoOfAmount(amount) {
@@ -367,17 +376,17 @@ async function main() {
     }
 
     {
-        // const utxosForFee = await getUtxoForFee();
-        // // let adminInfo = await getAdminInfo();
-        // // console.log('before setAdmin:', JSON.stringify(adminInfo));
-        // let signedTx = await sdkNew.setMintCheckVH(newMintCheckVH, mustSignBy, utxosForFee, [collateralUtxo], admin);
-        // console.log('--%%%%%%%%%%%%%1-------\n', signedTx.to_json());
-        // const exUnit = await ogmiosUtils.evaluateTx(signedTx);
-        // signedTx = await sdkNew.setMintCheckVH(newMintCheckVH, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
-        // console.log('--setMintCheckVH-------\n', signedTx.to_hex());
-        // // let o = await submitAndWaitConfirmed(signedTx);
-        // // adminInfo = await getAdminInfo();
-        // // console.log('after setAdmin:', JSON.stringify(adminInfo));
+        const utxosForFee = await getUtxoForFee();
+        // let adminInfo = await getAdminInfo();
+        // console.log('before setAdmin:', JSON.stringify(adminInfo));
+        let signedTx = await sdkNew.setMintCheckVH(newMintCheckVH, mustSignBy, utxosForFee, [collateralUtxo], admin);
+        console.log('--%%%%%%%%%%%%%1-------\n', signedTx.to_json());
+        const exUnit = await ogmiosUtils.evaluateTx(signedTx);
+        signedTx = await sdkNew.setMintCheckVH(newMintCheckVH, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
+        console.log('--setMintCheckVH-------\n', signedTx.to_hex());
+        // let o = await submitAndWaitConfirmed(signedTx);
+        // adminInfo = await getAdminInfo();
+        // console.log('after setAdmin:', JSON.stringify(adminInfo));
     }
 
 
@@ -459,21 +468,21 @@ async function main() {
     // }
 
     {
-        // const count = 7;
-        // console.log('amount before mint:', (await getCheckTokenUtxo(0)).length);
-        // const utxosForFee = await getUtxoForFee();
-        // let signedTx = await sdkNew.mintTreasuryCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin);
-        // const exUnit = await ogmiosUtils.evaluateTx(signedTx);
-        // console.log('--exUnit---\n', JSON.stringify(exUnit));
-        // signedTx = await sdkNew.mintTreasuryCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
-        // console.log('--mintTreasuryCheckToken-------\n', signedTx.to_hex());
-        // const o = await submitAndWaitConfirmed(signedTx);
+        const count = 14;
+        console.log('amount before mint:', (await getCheckTokenUtxo(0)).length);
+        const utxosForFee = await getUtxoForFee();
+        let signedTx = await sdkNew.mintTreasuryCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin);
+        const exUnit = await ogmiosUtils.evaluateTx(signedTx);
+        console.log('--exUnit---\n', JSON.stringify(exUnit));
+        signedTx = await sdkNew.mintTreasuryCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
+        console.log('--mintTreasuryCheckToken-------\n', signedTx.to_hex());
+        // const o = await submitAndWaitConfirmed(signedTx);XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
         // console.log('amount after mint:', (await getCheckTokenUtxo(0)).length);
     }
 
     {
         const count = 10;
-        console.log('amount before mint:', (await getCheckTokenUtxo(1)).length);
+        // console.log('amount before mint:', (await getCheckTokenUtxo(1)).length);
         const utxosForFee = await getUtxoForFee();
         let signedTx = await sdkNew.mintMintCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin);
         const exUnit = await ogmiosUtils.evaluateTx(signedTx);
@@ -484,28 +493,43 @@ async function main() {
     }
 
     {
-        const count = 7;
-        console.log('amount before mint:', (await getCheckTokenUtxo(2)).length);
-        const utxosForFee = await getUtxoForFee();
-        let signedTx = await sdkNew.mintNFTTreasuryCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin);
-        const exUnit = await ogmiosUtils.evaluateTx(signedTx);
-        console.log('--exUnit---\n', JSON.stringify(exUnit));
-        signedTx = await sdkNew.mintNFTTreasuryCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
-        console.log('--mintNFTTreasuryCheckToken-------\n', signedTx.to_hex());
-        // const o = await submitAndWaitConfirmed(signedTx);
-        // console.log('amount after mint:', (await getCheckTokenUtxo(2)).length);
+        // const utxosForFee = await getUtxoForFee();
+        // // let adminInfo = await getAdminInfo();
+        // // console.log('before setAdmin:', JSON.stringify(adminInfo));
+        // const newBalanceWorker = 'addr1qyl9ean33xxfhmvrz9y3weq7vsq9zrayfs07uxtxemwwxrf7tnm8rzvvn0kcxy2fzajpueqq2y86gnqlacvkdnkuuvxsajhvte';
+        // let signedTx = await sdkNew.setBalanceWorker(newBalanceWorker, mustSignBy, utxosForFee, [collateralUtxo], admin);
+        // console.log('--%%%%%%%%%%%%%1-------\n', signedTx.to_json());
+        // const exUnit = await ogmiosUtils.evaluateTx(signedTx);
+        // signedTx = await sdkNew.setBalanceWorker(newBalanceWorker, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
+        // console.log('--setBalanceWorker-------\n', signedTx.to_hex());
+        // // let o = await submitAndWaitConfirmed(signedTx);
+        // // adminInfo = await getAdminInfo();
+        // // console.log('after setAdmin:', JSON.stringify(adminInfo));
     }
 
+    // {
+    //     const count = 7;
+    //     console.log('amount before mint:', (await getCheckTokenUtxo(2)).length);
+    //     const utxosForFee = await getUtxoForFee();
+    //     let signedTx = await sdkNew.mintNFTTreasuryCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin);
+    //     const exUnit = await ogmiosUtils.evaluateTx(signedTx);
+    //     console.log('--exUnit---\n', JSON.stringify(exUnit));
+    //     signedTx = await sdkNew.mintNFTTreasuryCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
+    //     console.log('--mintNFTTreasuryCheckToken-------\n', signedTx.to_hex());
+    //     // const o = await submitAndWaitConfirmed(signedTx);
+    //     // console.log('amount after mint:', (await getCheckTokenUtxo(2)).length);
+    // }
+
     {
-        const count = 10;
-        console.log('amount before mint:', (await getCheckTokenUtxo(3)).length);
-        const utxosForFee = await getUtxoForFee();
-        let signedTx = await sdkNew.mintNFTMintCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin);
-        const exUnit = await ogmiosUtils.evaluateTx(signedTx);
-        signedTx = await sdkNew.mintNFTMintCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
-        console.log('--mintNFTMintCheckToken-------\n', signedTx.to_hex());
-        // const o = await submitAndWaitConfirmed(signedTx);
+        // const count = 10;
         // console.log('amount before mint:', (await getCheckTokenUtxo(3)).length);
+        // const utxosForFee = await getUtxoForFee();
+        // let signedTx = await sdkNew.mintNFTMintCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin);
+        // const exUnit = await ogmiosUtils.evaluateTx(signedTx);
+        // signedTx = await sdkNew.mintNFTMintCheckToken(count, mustSignBy, utxosForFee, [collateralUtxo], admin, signFn, exUnit);
+        // console.log('--mintNFTMintCheckToken-------\n', signedTx.to_hex());
+        // // const o = await submitAndWaitConfirmed(signedTx);
+        // // console.log('amount before mint:', (await getCheckTokenUtxo(3)).length);
     }
 
 }
