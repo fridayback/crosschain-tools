@@ -41,16 +41,24 @@ export async function init(network = 'testnet') {
 }
 
 // ── 功能 5：信息查询 ──────────────────────────────
-// groupInfo datum（13 参数，hex）
+// groupInfo datum 解析结果：索引 → 值。
+// 多数槽位是 hex 字符串；但 new SDK 的 getGroupInfoByDatum 会把
+// params[14]（PendingGPKParam）**解码成对象**，渲染时必须当心（见 QueryPanel.formatParamValue）。
 export async function getGroupInfo(kind = 'new') {
   const sdk = getSdk(kind)
   const mgr = getPkg(kind).contracts_mgr
   const utxo = await sdk.getGroupInfoNft()
   if (!utxo) throw new Error(`[${kind}] groupInfo NFT UTXO 未找到`)
-  return {
-    utxo,
-    params: mgr.GroupNFT.groupInfoFromDatum(utxo.datum),
-  }
+
+  // getGroupInfoByDatum 只有 crosschain-sdk-new 有（old 连 decodePendingGPK 都没有），
+  // 缺失时回退到 GroupNFT.groupInfoFromDatum —— 行为等同改动前，14 槽原样返回 hex。
+  // 注意导出名是 GroupNFT（contracts-mgr 里没有 GroupNFTScript）。
+  const params =
+    typeof sdk.getGroupInfoByDatum === 'function'
+      ? sdk.getGroupInfoByDatum(utxo.datum)
+      : mgr.GroupNFT.groupInfoFromDatum(utxo.datum)
+
+  return { utxo, params }
 }
 
 // adminInfo（signatories + minNumSignatures）

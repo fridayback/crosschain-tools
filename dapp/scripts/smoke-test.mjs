@@ -22,7 +22,7 @@ const required = [
   'src/components/CosignPanel.jsx', 'src/components/WalletConnect.jsx',
   'src/components/BuildResult.jsx', 'src/components/CoverageCard.jsx',
   'src/components/CheckTokenPanel.jsx', 'src/components/Modal.jsx',
-  'src/components/ScriptRefCreate.jsx',
+  'src/components/ScriptRefCreate.jsx', 'src/components/PanelBoundary.jsx',
   'scripts/witness-test.mjs',
   'dist/index.html',
 ]
@@ -181,6 +181,33 @@ try {
   // fix-sdk 必须带上 utils.js 的 signFn 保护规则，否则该修复会在 yarn install 后丢失
   if (!read('scripts/fix-sdk.mjs').includes('无条件调用 signFn')) {
     err('fix-sdk.mjs 缺少 utils.js signFn 保护规则')
+  }
+
+  // 每个面板必须套错误边界：面板常驻挂载，任一个 render 抛错都会整站白屏
+  const appSrc = read('src/App.jsx')
+  if (!appSrc.includes('PanelBoundary')) err('App.jsx 未给面板套 PanelBoundary')
+  if (!/<PanelBoundary[\s\S]{0,200}<Panel\b/.test(appSrc)) {
+    err('App.jsx 的 PanelBoundary 没有包住 <Panel>')
+  }
+
+  // groupInfo 参数值可能是对象（new SDK 把 index 14 的 PendingGPK 解码成对象）。
+  // 裸插值进 JSX 会让 React 抛 "Objects are not valid as a React child"；
+  // 本项目没有 ErrorBoundary，那会整页白屏 —— 必须走 formatParamValue。
+  const qpSrc = read('src/components/QueryPanel.jsx')
+  if (!qpSrc.includes('formatParamValue')) err('QueryPanel.jsx 缺少 formatParamValue')
+  if (/\{overview\.group\.params\[p\.index\]\s*\|\|/.test(qpSrc)) {
+    err('QueryPanel.jsx 仍把 groupInfo 参数值裸插值进 JSX（对象会让 React 白屏）')
+  }
+
+  // getGroupInfoByDatum 只有 crosschain-sdk-new 有；old 必须能回退
+  const bridge = read('src/sdk-bridge.js')
+  if (!/typeof sdk\.getGroupInfoByDatum === 'function'/.test(bridge)) {
+    err('sdk-bridge.js 未对 getGroupInfoByDatum 做能力回退（old SDK 没有该方法）')
+  }
+  // 导出名是 GroupNFT —— GroupNFTScript 不存在，属性访问会 TypeError。
+  // 只匹配 `.GroupNFTScript`（属性访问），否则会误伤解释这条的注释。
+  if (/\.GroupNFTScript\b/.test(bridge)) {
+    err('sdk-bridge.js 引用了不存在的 GroupNFTScript（应为 GroupNFT）')
   }
 
   // 创建 script ref 前必须能核对脚本：弹窗要显示 hash，且 hash 来自本地脚本

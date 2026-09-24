@@ -10,6 +10,7 @@ import UpgradePanel from './components/UpgradePanel'
 import MultisigPanel from './components/MultisigPanel'
 import RebuildPanel from './components/RebuildPanel'
 import CosignPanel from './components/CosignPanel'
+import PanelBoundary from './components/PanelBoundary'
 
 const TABS = [
   { id: 'query', label: '信息查询', Panel: QueryPanel },
@@ -114,11 +115,15 @@ export default function App() {
             </p>
           </div>
         ) : (
-          TABS.map(({ id, Panel }) =>
-            // 访问过的面板保持挂载，仅用 display 隐藏，故内部状态不会丢
+          TABS.map(({ id, label, Panel }) =>
+            // 访问过的面板保持挂载，仅用 display 隐藏，故内部状态不会丢。
+            // 每个面板套一层错误边界：面板常驻挂载，任一个在 render 期抛错都会
+            // 冒泡到根、整站白屏，边界把它限制在出错的那个标签页内。
             visited.has(id) ? (
               <div key={id} style={{ display: tab === id ? undefined : 'none' }}>
-                <Panel network={network} onNavigate={setTab} />
+                <PanelBoundary name={label}>
+                  <Panel network={network} onNavigate={setTab} />
+                </PanelBoundary>
               </div>
             ) : null
           )

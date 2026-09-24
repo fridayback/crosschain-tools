@@ -21,6 +21,24 @@ function scriptInfo(script) {
   return parts.map(([k, v]) => `${k} (${Math.floor(v.length / 2)} B)`).join('\n')
 }
 
+// groupInfo 参数值 → 可渲染文本。
+//
+// 大多数槽位是 hex 字符串，但 `getGroupInfoByDatum` 会把 index 14（PendingGPKParam）
+// 解码成对象 { new_gpk, activation_time }。直接塞进 JSX 会让 React 抛
+// "Objects are not valid as a React child" —— 而本项目没有 ErrorBoundary，
+// 那个错误会冒泡到根、**整页白屏**（且面板常驻挂载，会连带所有标签页）。
+// 做通用格式化而不是特判 index 14，未来任何非字符串参数都不会再炸。
+function formatParamValue(v) {
+  if (v === null || v === undefined || v === '') return '—'
+  if (typeof v === 'string') return v
+  if (typeof v === 'object') {
+    return Object.entries(v)
+      .map(([k, val]) => `${k}: ${val}`)
+      .join('\n')
+  }
+  return String(v)
+}
+
 // 合约清单条目 → 本地脚本的 hash/版本/字节数，供创建前核对。
 // 注意这是**本地**脚本的 hash（TreasuryCheckScript.script().hash()）。
 // 不做「与 groupInfo 的 *VH 参数比对」：SDK 的地址推导用的是本地脚本、
@@ -128,7 +146,9 @@ export default function QueryPanel({ network, onNavigate }) {
                   <tr key={p.index}>
                     <td>{p.index}</td>
                     <td>{p.name}</td>
-                    <td className="mono">{overview.group.params[p.index] || '—'}</td>
+                    <td className="mono" style={{ whiteSpace: 'pre-line' }}>
+                      {formatParamValue(overview.group.params[p.index])}
+                    </td>
                     <td className="muted">{GROUP_INFO_NOTES[p.index] || ''}</td>
                   </tr>
                 ))}
