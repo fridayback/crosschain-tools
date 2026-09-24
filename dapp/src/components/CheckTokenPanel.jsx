@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { sdkLabel } from '../sdk-versions'
 import { mintCheckToken, burnCheckToken } from '../api/tx'
 import { getCheckTokenUtxos, CHECK_TOKEN_TYPES } from '../api/query'
 import { useBuildFlow } from '../build-flow'
@@ -92,8 +93,8 @@ export default function CheckTokenPanel({ onNavigate }) {
           <div>
             <label>SDK 版本</label>
             <select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="new">crosschain-sdk-new (1.5.0)</option>
-              <option value="old">crosschain-sdk-old (v1.3.1)</option>
+              <option value="new">{sdkLabel('new')}</option>
+              <option value="old">{sdkLabel('old')}</option>
             </select>
           </div>
           <div>

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { sdkLabel } from '../sdk-versions'
 import { getOverview, getContracts, getScriptRefs, getScriptRefOwner } from '../api/query'
 import { getPkg } from '../sdk-bridge'
 import { groupInfoParamNames, GROUP_INFO_NOTES } from '../contract-registry'
@@ -113,8 +114,8 @@ export default function QueryPanel({ network, onNavigate }) {
           <div>
             <label>SDK 版本</label>
             <select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="new">crosschain-sdk-new (1.5.0)</option>
-              <option value="old">crosschain-sdk-old (v1.3.1)</option>
+              <option value="new">{sdkLabel('new')}</option>
+              <option value="old">{sdkLabel('old')}</option>
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
@@ -262,7 +263,7 @@ export default function QueryPanel({ network, onNavigate }) {
                   <td>
                     <button
                       className="secondary copy-btn"
-                      disabled={!!s.error}
+                      disabled={s.ref}
                       title="为这个合约创建 script reference UTXO"
                       onClick={() => setCreating(s.name)}
                     >

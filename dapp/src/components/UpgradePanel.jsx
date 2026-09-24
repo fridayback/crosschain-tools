@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sdkLabel } from '../sdk-versions'
 import { getPkg, getGroupInfo } from '../sdk-bridge'
 import { upgradeGroupNFTHolder, upgradeAdminNFTHolder } from '../api/tx'
 import { useBuildFlow } from '../build-flow'
@@ -58,8 +59,8 @@ export default function UpgradePanel({ onNavigate }) {
           <div>
             <label>SDK 版本</label>
             <select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="new">crosschain-sdk-new (1.5.0)</option>
-              <option value="old">crosschain-sdk-old (v1.3.1)</option>
+              <option value="new">{sdkLabel('new')}</option>
+              <option value="old">{sdkLabel('old')}</option>
             </select>
           </div>
           <div>

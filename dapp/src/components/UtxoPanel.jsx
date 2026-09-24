@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { sdkLabel } from '../sdk-versions'
 import { getContractUtxos } from '../api/query'
 import { UTXO_CONTRACTS } from '../contract-registry'
 
@@ -31,8 +32,8 @@ export default function UtxoPanel({ network }) {
           <div>
             <label>SDK 版本</label>
             <select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="new">crosschain-sdk-new (1.5.0)</option>
-              <option value="old">crosschain-sdk-old (v1.3.1)</option>
+              <option value="new">{sdkLabel('new')}</option>
+              <option value="old">{sdkLabel('old')}</option>
             </select>
           </div>
           <div>

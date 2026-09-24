@@ -11,6 +11,7 @@ import MultisigPanel from './components/MultisigPanel'
 import RebuildPanel from './components/RebuildPanel'
 import CosignPanel from './components/CosignPanel'
 import PanelBoundary from './components/PanelBoundary'
+import { sdkLabel } from './sdk-versions'
 
 const TABS = [
   { id: 'query', label: '信息查询', Panel: QueryPanel },
@@ -86,7 +87,7 @@ export default function App() {
         )}
         {err && <span className="err">{err}</span>}
         <span className="muted" style={{ marginLeft: 'auto' }}>
-          crosschain-sdk-old (v1.3.1) / crosschain-sdk-new (1.5.0) · 纯前端 · 私钥仅内存 ·
+          {`${sdkLabel('old')} / ${sdkLabel('new')}`} · 纯前端 · 私钥仅内存 ·
           支持插件钱包签名
         </span>
       </header>

@@ -20,9 +20,16 @@
       th { background: #f8f9fa; font-weight: 600; }
       label { display: block; font-size: 13px; margin: 8px 0 4px; color: #636e72; }
       input, select, textarea { width: 100%; padding: 7px 10px; border: 1px solid #dcdde1; border-radius: 6px; font-size: 13px; font-family: monospace; }
+      /* ── 按钮：常态 / hover / 禁用 ──
+         禁用态统一由 button:disabled 处理（变淡 + 禁用光标），
+         所有 :hover 一律加 :not(:disabled)：否则灰掉的按钮悬停仍会变色，
+         看起来像还能点。两类按钮因此都有明确的「可点 / 不可点」对比。 */
+      button { transition: background-color .15s, opacity .15s; }
       button.primary { background: #0984e3; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-      button.primary:hover { background: #0873c4; }
+      button.primary:hover:not(:disabled) { background: #0873c4; }
       button.secondary { background: #b2bec3; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+      button.secondary:hover:not(:disabled) { background: #9aa6ab; }
+      button:disabled { opacity: .5; cursor: not-allowed; }
       .danger { background: #d63031; }
       .mono { font-family: monospace; font-size: 12px; }
       .row { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -41,7 +48,6 @@
       .seg button:last-child { border-radius: 0 6px 6px 0; }
       .copy-btn { padding: 4px 10px; font-size: 12px; }
       button.icon-btn { padding: 4px 6px; min-width: 26px; line-height: 1; font-size: 13px; text-align: center; }
-      button.icon-btn:disabled { opacity: .45; cursor: not-allowed; }
       .rowlist-head { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; flex-wrap: wrap; }
       .rowlist-head > label { margin: 0; flex: 1; min-width: 140px; }
       .kv { font-size: 12px; color: #636e72; margin: 3px 0; word-break: break-all; }

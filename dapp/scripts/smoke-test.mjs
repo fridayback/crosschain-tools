@@ -23,6 +23,7 @@ const required = [
   'src/components/BuildResult.jsx', 'src/components/CoverageCard.jsx',
   'src/components/CheckTokenPanel.jsx', 'src/components/Modal.jsx',
   'src/components/ScriptRefCreate.jsx', 'src/components/PanelBoundary.jsx',
+  'src/sdk-versions.js',
   'scripts/witness-test.mjs',
   'dist/index.html',
 ]
@@ -181,6 +182,42 @@ try {
   // fix-sdk 必须带上 utils.js 的 signFn 保护规则，否则该修复会在 yarn install 后丢失
   if (!read('scripts/fix-sdk.mjs').includes('无条件调用 signFn')) {
     err('fix-sdk.mjs 缺少 utils.js signFn 保护规则')
+  }
+
+  // SDK 版本号必须从 package.json 派生，不得在界面上硬编码
+  // （硬编码过：界面写 1.5.0 / v1.3.1，而 package.json 声明的是 1.5.1 / v1.5.0）
+  const sv = read('src/sdk-versions.js')
+  if (!sv.includes("from '../package.json'")) err('sdk-versions.js 未从 package.json 取版本')
+  for (const f of [
+    'src/App.jsx', 'src/components/QueryPanel.jsx', 'src/components/UtxoPanel.jsx',
+    'src/components/SetAddressPanel.jsx', 'src/components/UpgradePanel.jsx',
+    'src/components/MultisigPanel.jsx', 'src/components/CheckTokenPanel.jsx',
+  ]) {
+    if (/crosschain-sdk-(new|old)\s*\(/.test(read(f))) {
+      err(`${f} 仍硬编码 SDK 版本号（应用 sdkLabel()）`)
+    }
+  }
+  // 派生结果必须与 package.json 的声明一致
+  try {
+    const deps = JSON.parse(read('package.json')).dependencies
+    for (const [pkgName, expect] of [
+      ['crosschain-sdk-new', deps['crosschain-sdk-new'].split('#').pop()],
+      ['crosschain-sdk-old', deps['crosschain-sdk-old'].split('#').pop()],
+    ]) {
+      if (!read('src/sdk-versions.js').includes(pkgName)) err(`sdk-versions.js 未引用 ${pkgName}`)
+      if (!expect) err(`package.json 的 ${pkgName} 缺少 #ref`)
+    }
+  } catch (e) {
+    err('读取 package.json 失败: ' + (e.message || e))
+  }
+
+  // 按钮的禁用态：必须有统一样式，且 hover 不得在禁用时生效
+  // （否则灰按钮悬停还会变色，看起来像能点）
+  const html = read('index.html')
+  if (!/button:disabled\s*\{/.test(html)) err('index.html 缺少 button:disabled 统一禁用样式')
+  if (!/:hover:not\(:disabled\)/.test(html)) err('index.html 的 :hover 未加 :not(:disabled) 守卫')
+  for (const m of html.matchAll(/button\.[a-z-]+:hover\s*\{/g)) {
+    err(`index.html 存在未加守卫的 ${m[0]}（禁用时仍会响应 hover）`)
   }
 
   // 每个面板必须套错误边界：面板常驻挂载，任一个 render 抛错都会整站白屏

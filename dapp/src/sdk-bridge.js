@@ -1,5 +1,5 @@
 // sdk-bridge: crosschain-sdk-old / crosschain-sdk-new 双实例封装（纯前端，HTTP ogmios 通道）
-// old = v1.3.1（旧版合约），new = 1.5.0（新版合约）
+// old / new = 两套合约；版本号见 package.json 依赖声明（src/sdk-versions.js）
 import sdkOldPkg from 'crosschain-sdk-old'
 import sdkNewPkg from 'crosschain-sdk-new'
 import ogmiosUtils from 'crosschain-sdk-new/ogmios-utils2'

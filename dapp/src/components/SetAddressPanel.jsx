@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sdkLabel } from '../sdk-versions'
 import { setAddress } from '../api/tx'
 import { useBuildFlow } from '../build-flow'
 import { SETTER_MAP } from '../contract-registry'
@@ -24,8 +25,8 @@ export default function SetAddressPanel({ onNavigate }) {
           <div>
             <label>SDK 版本</label>
             <select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="new">crosschain-sdk-new (1.5.0)</option>
-              <option value="old">crosschain-sdk-old (v1.3.1)</option>
+              <option value="new">{sdkLabel('new')}</option>
+              <option value="old">{sdkLabel('old')}</option>
             </select>
           </div>
           <div>
