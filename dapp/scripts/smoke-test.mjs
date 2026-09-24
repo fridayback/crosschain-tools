@@ -21,6 +21,8 @@ const required = [
   'src/components/CodeField.jsx', 'src/components/RowList.jsx',
   'src/components/CosignPanel.jsx', 'src/components/WalletConnect.jsx',
   'src/components/BuildResult.jsx', 'src/components/CoverageCard.jsx',
+  'src/components/CheckTokenPanel.jsx', 'src/components/Modal.jsx',
+  'src/components/ScriptRefCreate.jsx',
   'scripts/witness-test.mjs',
   'dist/index.html',
 ]
@@ -78,6 +80,122 @@ try {
   // App 必须把 setTab 作为 onNavigate 传下去，否则上面的按钮无处可去
   if (!/onNavigate=\{setTab\}/.test(read('src/App.jsx'))) {
     err('App.jsx 未把 setTab 作为 onNavigate 传给面板')
+  }
+
+  // CheckToken 管理：选项卡位置（必须在 UTXO 详情之后）与 mint/burn 方法映射齐全
+  const app = read('src/App.jsx')
+  const iUtxo = app.indexOf("id: 'utxo'")
+  const iCheck = app.indexOf("id: 'check'")
+  if (iCheck < 0) err("App.jsx 缺少 check 标签页")
+  else if (iUtxo < 0 || iCheck < iUtxo) err("check 标签页必须排在 utxo 之后")
+
+  const txjs = read('src/api/tx.js')
+  for (const m of [
+    'mintTreasuryCheckToken', 'mintMintCheckToken',
+    'mintNFTTreasuryCheckToken', 'mintNFTMintCheckToken',
+    'burnTreasuryCheckToken', 'burnMintCheckToken',
+    'burnNFTTreasuryCheckTokenWithHolder', 'burnNFTMintCheckTokenWithHolder',
+  ]) {
+    if (!txjs.includes(m)) err(`api/tx.js 缺少方法映射 ${m}`)
+  }
+  // NFT 的 burn 只有 WithHolder 变体，holder 必须在第 2 位传入
+  if (!/sdk\[method\]\(amount, holder, \.\.\.tail\)/.test(txjs)) {
+    err('api/tx.js 的 WithHolder burn 未按 (amount, holder, ...) 传参')
+  }
+
+  // 上游 nft-contract.js 里 NFTTreasuryCheckScript.burn 曾有个游离的 `dd`
+  // 导致调用必抛 ReferenceError；这里防回归（全部 vendored 副本都要干净）
+  for (const p of [
+    'node_modules/crosschain-sdk-new/nft-contract.js',
+    'node_modules/crosschain-sdk-old/nft-contract.js',
+  ]) {
+    try {
+      if (/^[ \t]*dd[ \t]*$/m.test(read(p))) err(`${p} 里仍有游离的 dd（NFT TreasuryCheck burn 会抛 ReferenceError）`)
+    } catch {
+      err(`读取失败: ${p}`)
+    }
+  }
+
+  // SDK 笔误：mintInboundCheckToken 曾调用 InboundCheckScript.mint（该类只有 burn），
+  // 必然抛 TypeError。正确目标是继承 CheckTokenScriptBase.mint 的 InboundCheckTokenScript。
+  for (const p of [
+    'node_modules/crosschain-sdk-new/sdk.js',
+    'node_modules/crosschain-sdk-old/sdk.js',
+  ]) {
+    try {
+      const sdk = read(p)
+      if (/InboundCheckScript\.mint\(/.test(sdk)) {
+        err(`${p}: mintInboundCheckToken 调用了不存在的 InboundCheckScript.mint`)
+      }
+      if (!/InboundCheckTokenScript\.mint\(/.test(sdk)) {
+        err(`${p}: 缺少 InboundCheckTokenScript.mint 调用`)
+      }
+      if (!sdk.includes('async burnInboundCheckToken')) {
+        err(`${p}: 缺少 burnInboundCheckToken`)
+      }
+      // InboundCheckScript.burn 要两个 ref (花费验证器, 铸币策略)。少传一个会让后面
+      // 所有实参错位一位 —— 运行时只报 "Cannot read properties of undefined (reading 'txHash')"，
+      // 完全指不到真正原因，所以这里直接卡住这个模式。
+      // 注意 \s* 不能写死成单个空格：两份 sdk.js 的逗号后空格并不一致，
+      // 写死会把已经正确的代码误判成缺失（踩过一次）。
+      if (/burnUtxos,\s*this\.inboundCheckTokenScriptRefUtxo/.test(sdk)) {
+        err(`${p}: InboundCheck burn 少传了 inboundCheckScriptRefUtxo（验证器 ref），实参会整体错位`)
+      }
+      const dual = sdk.match(
+        /burnUtxos,\s*this\.inboundCheckScriptRefUtxo,\s*this\.inboundCheckTokenScriptRefUtxo/g
+      )
+      if (!dual || dual.length !== 2) {
+        err(`${p}: InboundCheck 的两个 burn（plain/WithHolder）应各传双 ref，实际 ${dual?.length ?? 0} 处`)
+      }
+    } catch {
+      err(`读取失败: ${p}`)
+    }
+  }
+
+  // groupInfo 参数名必须由 GroupNFT 常量派生，不能再用第二份手写清单
+  const registry = read('src/contract-registry.js')
+  if (!registry.includes('groupInfoParamNames')) err('contract-registry.js 缺少 groupInfoParamNames')
+  if (read('src/config.js').includes('GROUP_INFO_PARAMS')) {
+    err('config.js 仍保留 GROUP_INFO_PARAMS（应由 GroupNFT 常量派生，避免漂移）')
+  }
+  if (!read('src/components/QueryPanel.jsx').includes('groupInfoParamNames')) {
+    err('QueryPanel.jsx 未使用 groupInfoParamNames')
+  }
+
+  // InboundCheck 必须与其它 check token 一样有 mint + burn
+  for (const m of ['mintInboundCheckToken', 'burnInboundCheckToken']) {
+    if (!txjs.includes(m)) err(`api/tx.js 缺少 ${m}`)
+  }
+
+  // 创建 script ref UTXO：必须走 utils.createScriptRef，且**不能**走 runOp
+  // （runOp 强制要求 5 ADA collateral 与 spend: 执行单元，本操作两者都不需要）
+  if (!txjs.includes('createScriptRefUtxo')) err('api/tx.js 缺少 createScriptRefUtxo')
+  const csrBody = txjs.slice(
+    txjs.indexOf('export async function createScriptRefUtxo'),
+    txjs.indexOf('export async function createScriptRefUtxo') + 1600
+  )
+  if (!csrBody.includes('utils.createScriptRef')) err('createScriptRefUtxo 未调用 utils.createScriptRef')
+  if (/return runOp\(/.test(csrBody)) err('createScriptRefUtxo 不应走 runOp（本操作无需 collateral / 执行单元）')
+  if (!read('src/api/query.js').includes('getScriptRefOwner')) err('api/query.js 缺少 getScriptRefOwner')
+
+  // fix-sdk 必须带上 utils.js 的 signFn 保护规则，否则该修复会在 yarn install 后丢失
+  if (!read('scripts/fix-sdk.mjs').includes('无条件调用 signFn')) {
+    err('fix-sdk.mjs 缺少 utils.js signFn 保护规则')
+  }
+
+  // 创建 script ref 前必须能核对脚本：弹窗要显示 hash，且 hash 来自本地脚本
+  const srcCreate = read('src/components/ScriptRefCreate.jsx')
+  if (!srcCreate.includes('scriptInfo.hash')) err('ScriptRefCreate.jsx 未显示脚本 hash')
+  const qp = read('src/components/QueryPanel.jsx')
+  if (!qp.includes('localScriptInfo')) err('QueryPanel.jsx 未计算本地脚本信息')
+  if (!/s\.hash\(\)\.to_hex\(\)/.test(qp)) err('localScriptInfo 未取 script().hash()')
+  // language_version() 返回 Language 对象，直接渲染会变成 [object Object]
+  if (/version:\s*s\.language_version\(\)/.test(qp)) {
+    err('localScriptInfo 直接把 Language 对象当字符串用（应取 .kind()）')
+  }
+  if (!read('src/api/query.js').includes("InboundCheck: 'InboundCheck'") &&
+      !read('src/api/query.js').includes("'InboundCheck',")) {
+    err('api/query.js 的 CHECK_TOKEN_TYPES 缺少 InboundCheck')
   }
 } catch (e) {
   err('接线断言读取失败: ' + (e.message || e))

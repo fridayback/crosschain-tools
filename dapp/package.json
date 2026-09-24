@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node scripts/smoke-test.mjs",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package && node scripts/fix-sdk.mjs"
   },
   "dependencies": {
     "@emurgo/cardano-serialization-lib-browser": "^12.1.1",

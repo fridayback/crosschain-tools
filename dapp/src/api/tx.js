@@ -11,6 +11,7 @@ import * as CardanoWasm from '@emurgo/cardano-serialization-lib-nodejs'
 import { getSdk, getPkg, getOg } from '../sdk-bridge'
 import { TX_PARAMS } from '../config'
 import { SETTER_MAP } from '../contract-registry'
+import { checkTokenAddress, getContracts } from './query'
 import utils from 'crosschain-sdk-new/utils'
 
 // ── 工具 ──────────────────────────────────────────
@@ -186,5 +187,128 @@ export async function setAdminMultisig(kind, signatories, minNumSignatures, opts
         signatories, minNumSignatures, mustSignBy,
         utxosForFee, [utxoForCollateral], changeAddr, signFn, exUnitTx
       )
+  return runOp(kind, makeBuild, opts)
+}
+
+// ── Script Ref UTXO：创建 ──────────────────────────
+/**
+ * 给 ownerAddr 创建一个 script reference UTXO（把 script 作为引用附在输出上）
+ *
+ * 刻意**不走 runOp/buildUnsigned**：创建 script ref 输出只是「引用」脚本、并不执行脚本，
+ * 所以没有 redeemer、不需要 collateral、也没有执行单元 —— 两遍构建和 collateral 校验
+ * 在这里都是多余的（runOp 会因为没有 `spend:` 执行单元而误判失败）。
+ *
+ * @param {'old'|'new'} kind
+ * @param {string} scriptName 合约名（contract-registry 里的 name）
+ * @param {string} ownerAddr 接收该 UTXO 的 bech32 地址（默认 scriptRefOwnerAddr）
+ * @param {{changeAddr}} opts 手续费与找零来源
+ */
+export async function createScriptRefUtxo(kind, scriptName, ownerAddr, opts) {
+  const { changeAddr } = opts || {}
+  if (!changeAddr) throw new Error('缺少 changeAddr')
+  if (!ownerAddr) throw new Error('缺少 owner 地址')
+
+  const registry = await getContracts(kind)
+  const c = registry.find((x) => x.name === scriptName)
+  if (!c) throw new Error(`合约清单中没有: ${scriptName}`)
+  if (!c.script) throw new Error(`合约没有可用脚本（SDK 是否已 init）: ${scriptName}`)
+
+  const utxosForFee = await getUtxosForFee(changeAddr)
+  if (!utxosForFee.length) {
+    throw new Error(`changeAddr(${changeAddr}) 下没有可用作手续费的 UTXO`)
+  }
+  const protocolParams = await getOg().getParamProtocol()
+
+  const tx = await utils.createScriptRef(
+    protocolParams, utxosForFee, changeAddr, ownerAddr, c.script, undefined
+  )
+
+  return {
+    draftHex: tx.to_hex(),
+    txHex: tx.to_hex(),
+    txJson: safeTxJson(tx),
+    txId: CardanoWasm.hash_transaction(tx.body()).to_hex(),
+    mustSignBy: [], // 非脚本花费，无 mustSignBy 约束
+    changeAddr,
+  }
+}
+
+// ── CheckToken 管理：铸造 / 销毁 ───────────────────
+//
+// 参数顺序（已逐行核对 sdk.js:449-756，错这个是最主要的风险）：
+//   mint          (amount, mustSignBy, utxosForFee, [collateral], changeAddr, signFn, exUnitTx)
+//   plain burn    (amount, mustSignBy, utxosForFee, [collateral], changeAddr, signFn, exUnitTx)
+//   WithHolder    (amount, holder, mustSignBy, utxosForFee, [collateral], changeAddr, signFn, exUnitTx)
+//
+// amount 是「UTXO 笔数」不是「代币枚数」：mint 每次 add_output 只放 1 枚，
+// burn 是 getUtxo(地址).slice(0, amount)。SDK 固定每笔 1 枚，故两者数值相等。
+
+const MINT_METHOD = {
+  TreasuryCheck: 'mintTreasuryCheckToken',
+  MintCheck: 'mintMintCheckToken',
+  NFTTreasuryCheck: 'mintNFTTreasuryCheckToken',
+  NFTMintCheck: 'mintNFTMintCheckToken',
+  InboundCheck: 'mintInboundCheckToken',
+}
+
+// NFT 的两个 burn **只有 WithHolder 变体**（没有 burnNFTTreasuryCheckToken），
+// 所以 holder 必须由前台提供；其余（含 InboundCheck）都走 plain 变体，
+// SDK 内部自己从实时 groupInfo 推 holder。
+const BURN_WITH_HOLDER = new Set(['NFTTreasuryCheck', 'NFTMintCheck'])
+const BURN_METHOD = {
+  TreasuryCheck: 'burnTreasuryCheckToken',
+  MintCheck: 'burnMintCheckToken',
+  NFTTreasuryCheck: 'burnNFTTreasuryCheckTokenWithHolder',
+  NFTMintCheck: 'burnNFTMintCheckTokenWithHolder',
+  InboundCheck: 'burnInboundCheckToken',
+}
+
+function assertAmount(amount) {
+  if (!Number.isInteger(amount) || amount < 1) {
+    throw new Error('笔数必须是 ≥1 的整数')
+  }
+}
+
+/**
+ * 铸造 check token
+ * @param {'old'|'new'} kind SDK 版本
+ * @param {'TreasuryCheck'|'MintCheck'|'NFTTreasuryCheck'|'NFTMintCheck'} tokenType
+ * @param {number} amount 笔数（每笔 1 枚，铸到对应的 check 脚本地址）
+ * @param {{changeAddr, mustSignBy[]}} opts
+ */
+export async function mintCheckToken(kind, tokenType, amount, opts) {
+  assertAmount(amount)
+  const method = MINT_METHOD[tokenType]
+  if (!method) throw new Error(`未知代币类型: ${tokenType}`)
+
+  const makeBuild =
+    ({ sdk, changeAddr, mustSignBy, utxosForFee, utxoForCollateral }) =>
+    (signFn, exUnitTx) =>
+      sdk[method](amount, mustSignBy, utxosForFee, [utxoForCollateral], changeAddr, signFn, exUnitTx)
+
+  return runOp(kind, makeBuild, opts)
+}
+
+/**
+ * 销毁 check token
+ * @param {number} amount 笔数（消耗该代币地址下的前 N 个 UTXO）
+ */
+export async function burnCheckToken(kind, tokenType, amount, opts) {
+  assertAmount(amount)
+  const method = BURN_METHOD[tokenType]
+  if (!method) throw new Error(`未知代币类型: ${tokenType}`)
+
+  const makeBuild =
+    ({ sdk, changeAddr, mustSignBy, utxosForFee, utxoForCollateral }) =>
+    async (signFn, exUnitTx) => {
+      const tail = [mustSignBy, utxosForFee, [utxoForCollateral], changeAddr, signFn, exUnitTx]
+      if (BURN_WITH_HOLDER.has(tokenType)) {
+        // holder 由链上实时 groupInfo 推出（见 query.js:checkTokenAddress 的说明）
+        const holder = await checkTokenAddress(kind, tokenType)
+        return sdk[method](amount, holder, ...tail)
+      }
+      return sdk[method](amount, ...tail)
+    }
+
   return runOp(kind, makeBuild, opts)
 }

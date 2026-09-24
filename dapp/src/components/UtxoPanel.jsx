@@ -81,8 +81,10 @@ export default function UtxoPanel({ network }) {
                   <td className="mono">{u.txHash || u.txId || '—'}</td>
                   <td>{u.index}</td>
                   <td>{(u.value.coins / 1e6).toFixed(6)}</td>
-                  <td className="mono">
-                    {u.value.assets
+                  {/* whiteSpace: pre-line 让 join('\n') 真的换行 ——
+                      否则多个资产在 HTML 里会挤成一行，看不出是几笔 */}
+                  <td className="mono" style={{ whiteSpace: 'pre-line' }}>
+                    {u.value.assets && Object.keys(u.value.assets).length
                       ? Object.entries(u.value.assets)
                           .map(([k, v]) => `${k}:${v}`)
                           .join('\n')

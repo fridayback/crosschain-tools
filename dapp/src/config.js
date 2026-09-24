@@ -30,20 +30,5 @@ export const TX_PARAMS = {
   parameterizedAmount2: 2222222,
 }
 
-// groupInfo datum 13 个参数的展示名（索引 = GroupNFT 常量值）
-export const GROUP_INFO_PARAMS = [
-  { index: 0, key: 'Version', label: '版本' },
-  { index: 1, key: 'Admin', label: 'Admin 地址' },
-  { index: 2, key: 'GPK', label: 'GPK 地址' },
-  { index: 3, key: 'BalanceWorker', label: 'BalanceWorker 地址' },
-  { index: 4, key: 'TreasuryCheckVH', label: 'TreasuryCheck 地址' },
-  { index: 5, key: 'OracleWorker', label: 'OracleWorker 地址' },
-  { index: 6, key: 'MintCheckVH', label: 'MintCheck 地址' },
-  { index: 7, key: 'StkVh', label: 'Stake 地址' },
-  { index: 8, key: 'StkCheckVh', label: 'StkCheck 地址' },
-  { index: 9, key: 'NFTRefHolderVH', label: 'NFTRefHolder 地址' },
-  { index: 10, key: 'NFTTreasuryCheckVH', label: 'NFTTreasuryCheck 地址' },
-  { index: 11, key: 'NFTMintCheckVH', label: 'NFTMintCheck 地址' },
-  { index: 12, key: 'OutboundHolderVH', label: 'OutboundHolder 地址' },
-  { index: 13, key: 'InboundCheckVH', label: 'InboundCheck 地址' },
-]
+// groupInfo 参数的展示名不再在这里维护：改为从 GroupNFT 静态常量派生
+// （见 contract-registry.js 的 groupInfoParamNames），避免与 SDK 漂移。

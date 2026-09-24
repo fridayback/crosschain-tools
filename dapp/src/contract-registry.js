@@ -168,6 +168,28 @@ export function buildContractRegistry(pkg, nftModule, prefix) {
   return reg
 }
 
+// ── groupInfo 参数名：直接取 GroupNFT 的静态常量，避免第二份手写清单与 SDK 漂移 ──
+//
+// GroupNFT 上除常量外还有静态方法（script/policy_id/...），用 typeof === 'number' 过滤即可。
+// 返回 { [index]: name }。未知索引由调用方兜底显示。
+export function groupInfoParamNames(pkg) {
+  const out = {}
+  for (const [name, idx] of Object.entries(pkg.contracts_mgr.GroupNFT)) {
+    if (typeof idx !== 'number') continue
+    if (out[idx] === undefined) out[idx] = name
+  }
+  return out
+}
+
+// 少数索引值得加一句说明（取自 contracts-mgr.js 里 GroupNFT 的注释）
+export const GROUP_INFO_NOTES = {
+  14: 'oracle 延时激活：params[14] = cbor(PendingGPK) 或空',
+  15: '无更新路由（读取/兼容用）',
+  16: '无更新路由（读取/兼容用）',
+  17: '无更新路由（读取/兼容用）',
+  18: '无更新路由（读取/兼容用）',
+}
+
 // ── 功能 1：13 个地址参数 → 设置方法映射 ──────────────
 // method: ContractSdk 高层方法；direct: 需直调 GroupInfoNFTHolderScript 静态方法（无高层封装）
 export const SETTER_MAP = {

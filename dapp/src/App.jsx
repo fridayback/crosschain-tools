@@ -4,6 +4,7 @@ import { detachWallet } from './wallet'
 import { NETWORKS } from './config'
 import QueryPanel from './components/QueryPanel'
 import UtxoPanel from './components/UtxoPanel'
+import CheckTokenPanel from './components/CheckTokenPanel'
 import SetAddressPanel from './components/SetAddressPanel'
 import UpgradePanel from './components/UpgradePanel'
 import MultisigPanel from './components/MultisigPanel'
@@ -13,6 +14,7 @@ import CosignPanel from './components/CosignPanel'
 const TABS = [
   { id: 'query', label: '信息查询', Panel: QueryPanel },
   { id: 'utxo', label: 'UTXO 详情', Panel: UtxoPanel },
+  { id: 'check', label: 'CheckToken 管理', Panel: CheckTokenPanel },
   { id: 'set', label: '设置地址', Panel: SetAddressPanel },
   { id: 'upgrade', label: 'Holder 升级', Panel: UpgradePanel },
   { id: 'multisig', label: 'Admin 多签', Panel: MultisigPanel },
@@ -61,7 +63,7 @@ export default function App() {
   return (
     <div>
       <header>
-        <h1>⛓ Crosschain Contracts Dapp</h1>
+        <h1>⛓ Crosschain Contracts Management</h1>
         <select
           value={network}
           onChange={(e) => switchNetwork(e.target.value)}
